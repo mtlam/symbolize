@@ -1,0 +1,142 @@
+#!/usr/bin/python
+'''
+Michael T. Lam 2019
+
+A simple utility for printing a variety of common unicode characters.
+
+Example: symbolize lambda pi gamma Gamma \'E accent-o umlaut-u carat-o hat-o tilde-x tilde-n angstrom pm
+https://en.wikipedia.org/wiki/List_of_Unicode_characters
+
+To add: hebrew, math symbols
+unit testing with printing
+'''
+
+
+import argparse
+import unicodedata
+import warnings
+
+ACCENT_DICT = {
+    "ACCENT": ("'", "ACUTE"),
+    "UMLAUT": ("\"", "DIAERESIS"),
+    "HAT": ("^", "CIRCUMFLEX"),
+    "CARAT": ("^", "CIRCUMFLEX"),
+    "TILDE": ("~", "TILDE")
+}
+
+SYMBOL_DICT = {
+    "TM": "TRADE MARK SIGN",
+    "TRADEMARK": "TRADE MARK SIGN",
+    "COPYRIGHT": "COPYRIGHT SIGN",
+    "REGISTERED": "REGISTERED SIGN",
+    "PM": "PLUS-MINUS SIGN",
+    "ANGSTROM": "LATIN CAPITAL LETTER A WITH RING ABOVE",
+    "HBAR": "PLANCK CONSTANT OVER TWO PI", #"LATIN SMALL LETTER H WITH STROKE",
+    "LAMBDABAR": "LATIN SMALL LETTER LAMBDA WITH STROKE",
+    "VARPI": "GREEK PI SYMBOL",
+    "VARPHI": "GREEK PHI SYMBOL",
+    "TIMES": "MULTIPLICATION SIGN",
+    "INFINITY": "INFINITY" #do more here
+}
+
+
+
+parser = argparse.ArgumentParser(
+    description="""
+    A simple utility for printing a variety of common unicode characters.
+    For accents, can take either LaTeX style or attached to the letter with a hyphen. Some mathematical symbols are available.
+    """)
+parser.add_argument('-q', action='store_true',
+                    help='suppress warnings')
+
+parser.add_argument('-c', action='store_true',
+                    help='copy output to clipboard (requires pyperclip)')
+
+
+parser.add_argument('-ex', action='store_true',
+                    help='Show a list of examples')
+
+parser.add_argument('symbols', type=str, nargs='*',
+                    help='symbol(s) to process')
+
+args = parser.parse_args()
+#print args
+
+
+
+
+
+
+
+
+def get_size(arg):
+    """
+    Determines if a value is upper case or not.
+
+    Returns: "CAPITAL" or "SMALL" for the unicode descriptor
+    """
+    if arg.isupper():
+        return "CAPITAL"
+    return "SMALL"
+
+
+
+
+def symbolize(arg):
+    """
+    Converts an argument to the appropriate unicode symbol
+
+    Returns: converted symbol
+
+    """
+
+    # Accents
+    for key, value in ACCENT_DICT.items():
+        if arg[0] == value[0] or arg.split("-")[0].upper() == key:
+            size = get_size(arg[-1])
+            return unicodedata.lookup("LATIN %s LETTER %s WITH %s"%(size, arg[-1], value[1]))
+
+
+    # Specific symbols
+    if arg.upper() in SYMBOL_DICT.keys():
+        return unicodedata.lookup(SYMBOL_DICT[arg.upper()])
+
+
+    # Greek
+    lookup_name = arg.upper()
+    if lookup_name == "LAMBDA":
+        lookup_name = "LAMDA"
+
+    size = get_size(arg[0])
+    return unicodedata.lookup("GREEK %s LETTER %s"%(size, lookup_name))
+
+
+
+
+
+
+if args.ex: #run examples
+    print("""This is equivalent to running:
+symbolize lambda pi gamma Gamma \'E accent-o umlaut-u carat-o hat-o tilde-n""")
+    args.symbols = "lambda pi gamma Gamma \'E accent-o umlaut-u carat-o hat-o tilde-n".split(" ")
+    #raise SystemExit
+
+
+output = ""
+for i, a in enumerate(args.symbols):
+    try:
+        output += symbolize(a)
+    except KeyError:
+        if not args.q:
+            warnings.warn("%s cannot be converted"%a, UserWarning)
+        output += " "
+
+if args.c: #copy to clipboard
+    try:
+        import pyperclip
+    except ImportError:
+        print("Error: copying to clipboard requires Python package pyperclip")
+        raise SystemExit
+    pyperclip.copy(output)
+else:
+    print(output)
